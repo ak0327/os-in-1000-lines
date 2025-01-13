@@ -1,6 +1,18 @@
 #include "kernel.h"
 
 extern char __bss[], __bss_end[], __stack_top[];
+extern char __free_ram[], __free_ram_end[];
+
+paddr_t alloc_pages(uint32_t n) {
+    static paddr_t  next_paddr = (paddr_t)__free_ram;
+    paddr_t paddr = next_paddr;
+    next_paddr += n * PAGE_SIZE;
+    if ((paddr_t)__free_ram_end < next_paddr) {
+        PANIC("out of memory");
+    }
+    memset((void *)paddr, 0, n * PAGE_SIZE);
+    return paddr;
+}
 
 struct sbiret sbi_call(
         long arg0, long arg1, long arg2, long arg3,
@@ -120,35 +132,44 @@ void kernel_main(void) {
     //     putchar(s[i]);
     // }
 
-//    // printf("\n\nHello World!\n");
-//    printf("%s", s);
+    /* printf */
+    printf("%s", s);
 //    printf("1 + 2 = %d, %x\n", 1 + 2, 0x1234abcd);
-//
-//    // strcmp
+
+    /* strcmp */
 //    printf("%d\n", strcmp("a", "a"));
 //    printf("%d\n", strcmp("", "a"));
 //    printf("%d\n", strcmp("a", ""));
 //    printf("%d\n", strcmp("a", "b"));
 //
-//    // strcpy
+    /* strcpy */
 //    char *d1 = "dst123";
 //    const char *s1 = "src";
 //    char *r1 = strcpy(d1, s1);
 //    printf("%s\n", r1);
-//
-//    // memset
+
+    /* memset */
 //    char *d2 = "00000";
 //    char *r2 = memset(d2, '1', 3);
 //    printf("%s\n", r2);
 
-    // panic
+
     memset(__bss, 0, (size_t) __bss_end - (size_t) __bss);
 
-    WRITE_CSR(stvec, (uint32_t)kernel_entry);
-    __asm__ __volatile__("unimp"); // 無効な命令
+    /* panic */
+//    WRITE_CSR(stvec, (uint32_t)kernel_entry);
+//    __asm__ __volatile__("unimp"); // 無効な命令
 
 //    PANIC("booted!");
 //    printf("unreachable here!\n");
+
+    /* malloc */
+    paddr_t paddr0 = alloc_pages(2);
+    paddr_t paddr1 = alloc_pages(1);
+    printf("alloc_pages test: paddr0=%x\n", paddr0);
+    printf("alloc_pages test: paddr1=%x\n", paddr1);
+
+    PANIC("booted!");
 
 //    for (;;) {
 //        __asm__ __volatile("wfi");
