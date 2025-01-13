@@ -37,6 +37,23 @@ void kernel_main(void) {
     printf("%s", s);
     printf("1 + 2 = %d, %x\n", 1 + 2, 0x1234abcd);
 
+    // strcmp
+    printf("%d\n", strcmp("a", "a"));
+    printf("%d\n", strcmp("", "a"));
+    printf("%d\n", strcmp("a", ""));
+    printf("%d\n", strcmp("a", "b"));
+
+    // strcpy
+    char *d1 = "dst123";
+    const char *s1 = "src";
+    char *r1 = strcpy(d1, s1);
+    printf("%s\n", r1);
+
+    // memset
+    char *d2 = "00000";
+    char *r2 = memset(d2, '1', 3);
+    printf("%s\n", r2);
+
     for (;;) {
         __asm__ __volatile("wfi");
     }
