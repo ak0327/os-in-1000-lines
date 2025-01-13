@@ -2,3 +2,9 @@
 
 !.gitignore
 !README.md
+
+!run.sh
+
+!*.c
+!*.h
+!*.ld
