@@ -1,5 +1,4 @@
 #include "kernel.h"
-#include "common.h"
 
 extern char __bss[], __bss_end[], __stack_top[];
 
@@ -33,26 +32,31 @@ void kernel_main(void) {
     //     putchar(s[i]);
     // }
 
-    // printf("\n\nHello World!\n");
-    printf("%s", s);
-    printf("1 + 2 = %d, %x\n", 1 + 2, 0x1234abcd);
+//    // printf("\n\nHello World!\n");
+//    printf("%s", s);
+//    printf("1 + 2 = %d, %x\n", 1 + 2, 0x1234abcd);
+//
+//    // strcmp
+//    printf("%d\n", strcmp("a", "a"));
+//    printf("%d\n", strcmp("", "a"));
+//    printf("%d\n", strcmp("a", ""));
+//    printf("%d\n", strcmp("a", "b"));
+//
+//    // strcpy
+//    char *d1 = "dst123";
+//    const char *s1 = "src";
+//    char *r1 = strcpy(d1, s1);
+//    printf("%s\n", r1);
+//
+//    // memset
+//    char *d2 = "00000";
+//    char *r2 = memset(d2, '1', 3);
+//    printf("%s\n", r2);
 
-    // strcmp
-    printf("%d\n", strcmp("a", "a"));
-    printf("%d\n", strcmp("", "a"));
-    printf("%d\n", strcmp("a", ""));
-    printf("%d\n", strcmp("a", "b"));
-
-    // strcpy
-    char *d1 = "dst123";
-    const char *s1 = "src";
-    char *r1 = strcpy(d1, s1);
-    printf("%s\n", r1);
-
-    // memset
-    char *d2 = "00000";
-    char *r2 = memset(d2, '1', 3);
-    printf("%s\n", r2);
+    // panic
+    memset(__bss, 0, (size_t) __bss_end - (size_t) __bss);
+    PANIC("booted!");
+    printf("unreachable here!\n");
 
     for (;;) {
         __asm__ __volatile("wfi");
