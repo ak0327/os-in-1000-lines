@@ -40,6 +40,17 @@ struct trap_frame {
     uint32_t sp;
 } __attribute__((packed));
 
+struct process {
+    int     pid;          // プロセスID
+    int     state;        // プロセスの状態 PROC_UNUSED or PROC_RUNNABLE
+    vaddr_t sp;           // コンテキストスイッチ時のスタックポインタ
+    uint8_t stack[8192];  // カーネルスタック
+};
+
+# define PROCS_MAX      8  // 最大プロセス数
+# define PROC_UNUSED    0  // 未使用のプロセス管理構造体
+# define PROC_RUNNABLE  1  // 実行可能なプロセス
+
 # define PANIC(fmt, ...)                                                        \
     do {                                                                        \
         printf("PANIC: %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);   \
