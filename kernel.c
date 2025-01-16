@@ -143,6 +143,11 @@ void putchar(char ch) {
     sbi_call(ch, 0, 0, 0, 0, 0, 0, 1);  /* Console putchar */
 }
 
+long getchar(void) {
+    struct sbiret ret = sbi_call(0, 0, 0, 0, 0, 0, 0, 2);
+    return ret.error;
+}
+
 __attribute__((naked))
 __attribute__((aligned(4)))
 void kernel_entry(void) {
@@ -329,90 +334,58 @@ void proc_b_entry(void) {
     }
 }
 
-void handle_trap(struct trap_frame *f) {
-    (void)f;
+void handle_syscall(struct trap_frame *f) {
+    switch (f->a3) {
+        case SYS_PUTCHAR:
+            putchar(f->a0);
+            break;
+        case SYS_GETCHAR:
+            while (1) {
+                long ch = getchar();
+                if (ch >= 0) {
+                    f->a0 = ch;
+                    break;
+                }
+                yield();
+            }
+            break;
+        case SYS_EXIT:
+            printf("process %d exited\n", current_proc->pid);
+            current_proc->state = PROC_EXITED;
+            yield();
+            PANIC("unreachable");
+        default:
+            PANIC("unexpected syscall a3=%x\n", f->a3);
+    }
+}
 
+void handle_trap(struct trap_frame *f) {
     uint32_t scause = READ_CSR(scause);
     uint32_t stval = READ_CSR(stval);
     uint32_t user_pc = READ_CSR(sepc);
 
-    PANIC("unexpected trap scause=%x, stval=%x, sepc=%x\n", scause, stval, user_pc);
+    if (scause == SCAUSE_ECALL) {
+        handle_syscall(f);
+        user_pc += 4;
+    } else {
+        PANIC("unexpected trap scause=%x, stval=%x, sepc=%x\n", scause, stval, user_pc);
+    }
+    WRITE_CSR(sepc, user_pc);
 }
 
 void kernel_main(void) {
-    const char *s = "\n\nHello World!\n";
-    // for (int i = 0; s[i] != '\0'; i++) {
-    //     putchar(s[i]);
-    // }
-
-    /* printf */
-    printf("%s", s);
-//    printf("1 + 2 = %d, %x\n", 1 + 2, 0x1234abcd);
-
-    /* strcmp */
-//    printf("%d\n", strcmp("a", "a"));
-//    printf("%d\n", strcmp("", "a"));
-//    printf("%d\n", strcmp("a", ""));
-//    printf("%d\n", strcmp("a", "b"));
-//
-    /* strcpy */
-//    char *d1 = "dst123";
-//    const char *s1 = "src";
-//    char *r1 = strcpy(d1, s1);
-//    printf("%s\n", r1);
-
-    /* memset */
-//    char *d2 = "00000";
-//    char *r2 = memset(d2, '1', 3);
-//    printf("%s\n", r2);
-
+    printf("\n\nHello World! from kernel\n");
 
     memset(__bss, 0, (size_t) __bss_end - (size_t) __bss);
-
-    /* panic */
     WRITE_CSR(stvec, (uint32_t)kernel_entry);
-//    __asm__ __volatile__("unimp"); // 無効な命令
-
-//    PANIC("booted!");
-//    printf("unreachable here!\n");
-
-    /* malloc */
-//    paddr_t paddr0 = alloc_pages(2);
-//    paddr_t paddr1 = alloc_pages(1);
-//    printf("alloc_pages test: paddr0=%x\n", paddr0);
-//    printf("alloc_pages test: paddr1=%x\n", paddr1);
-//
-//    PANIC("booted!");
-
-    /* process */
-//    proc_a = create_process((uint32_t)proc_a_entry);
-//    proc_b = create_process((uint32_t)proc_b_entry);
-//    proc_a_entry();
-//
-//    PANIC("unreachable here!");
-
-//    idle_proc = create_process((uint32_t)NULL);
-//    idle_proc->pid = -1;  // idle
-//    current_proc = idle_proc;
-//
-//    proc_a = create_process((uint32_t)proc_a_entry);
-//    proc_b = create_process((uint32_t)proc_b_entry);
-//
-//    yield();
-//    PANIC("switched to idle process");
 
     idle_proc = create_process(NULL, 0);
     idle_proc->pid = -1;  // idle
     current_proc = idle_proc;
 
     create_process(_binary_shell_bin_start, (size_t)_binary_shell_bin_size);
-
     yield();
     PANIC("switched to idle process");
-
-//    for (;;) {
-//        __asm__ __volatile("wfi");
-//    }
 }
 
 __attribute__((section(".text.boot")))

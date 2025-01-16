@@ -59,6 +59,8 @@ struct process {
 # define PAGE_U         (1 << 4)   // ユーザーモードでアクセス可能
 # define USER_BASE      0x1000000  // ロード先のアドレス
 # define SSTATUS_SPIE   (1 << 5)
+# define SCAUSE_ECALL   8
+# define PROC_EXITED    2
 
 # define PANIC(fmt, ...)                                                        \
     do {                                                                        \
