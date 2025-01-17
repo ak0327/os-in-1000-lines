@@ -1,4 +1,5 @@
 #include "kernel.h"
+#include "common.h"
 
 extern char __bss[], __bss_end[], __stack_top[];
 extern char __free_ram[], __free_ram_end[];
@@ -73,7 +74,7 @@ __attribute__((naked)) void user_entry(void) {
             "sret\n"
             :
             : [sepc] "r" (USER_BASE),
-    [sstatus] "r" (SSTATUS_SPIE)
+              [sstatus] "r" (SSTATUS_SPIE)
     );
 }
 
@@ -190,6 +191,9 @@ void kernel_entry(void) {
             "csrr a0, sscratch\n"
             "sw a0, 4 * 30(sp)\n"
 
+            "addi a0, sp, 4 * 31\n"
+            "csrw sscratch, a0\n"
+
             "mv a0, sp\n"
             "call handle_trap\n"
 
@@ -223,16 +227,8 @@ void kernel_entry(void) {
             "lw s9,  4 * 27(sp)\n"
             "lw s10, 4 * 28(sp)\n"
             "lw s11, 4 * 29(sp)\n"
-            // 例外発生時のspを取り出して保存
-            "csrr a0, sscratch\n"
-            "sw a0,  4 * 30(sp)\n"
-
-            // カーネルスタックを設定し直す
-            "addi a0, sp, 4 * 31\n"
-            "csrw sscratch, a0\n"
-
-            "mv a0, sp\n"
-            "call handle_trap\n"
+            "lw sp,  4 * 30(sp)\n"
+            "sret\n"
             );
 }
 
@@ -292,6 +288,10 @@ void yield(void) {
         return;
     }
 
+    // コンテキストスイッチ
+    struct process *prev = current_proc;
+    current_proc = next;
+
     __asm__ __volatile__(
         "sfence.vma\n"
         "csrw satp, %[satp]\n"
@@ -302,9 +302,6 @@ void yield(void) {
           [sscratch] "r" ((uint32_t)&next->stack[sizeof(next->stack)])
     );
 
-    // コンテキストスイッチ
-    struct process *prev = current_proc;
-    current_proc = next;
     switch_context(&prev->sp, &next->sp);
 }
 

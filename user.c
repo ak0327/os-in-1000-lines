@@ -23,14 +23,13 @@ int getchar(void) {
     return syscall(SYS_GETCHAR, 0, 0, 0);
 }
 
-__attribute__((section(".text.stert")))
+__attribute__((section(".text.start")))
 __attribute__((naked))
-void stert(void) {
+void start(void) {
     __asm__ __volatile__(
         "mv sp, %[stack_top]\n"
         "call main\n"
-        "call exit\n" ::[stack_top] "r"(__stack_top)
-    );
+        "call exit\n" ::[stack_top] "r"(__stack_top));
 }
 
 __attribute__((noreturn)) void exit(void) {
