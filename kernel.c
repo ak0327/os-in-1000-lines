@@ -1,14 +1,13 @@
 #include "kernel.h"
 #include "common.h"
 
-extern char __bss[], __bss_end[], __stack_top[];
+extern char __stack_top[];
+extern char __bss[], __bss_end[];
 extern char __free_ram[], __free_ram_end[];
 extern char __kernel_base[];
 extern char _binary_shell_bin_start[], _binary_shell_bin_size[];
 
 struct process procs[PROCS_MAX];
-struct process *proc_a;
-struct process *proc_b;
 struct process *current_proc;
 struct process *idle_proc;
 
@@ -311,26 +310,6 @@ void delay(void) {
     }
 }
 
-void proc_a_entry(void) {
-    printf("starting process A\n");
-    while (1) {
-        putchar('A');
-        switch_context(&proc_a->sp, &proc_b->sp);
-        yield();
-        delay();
-    }
-}
-
-void proc_b_entry(void) {
-    printf("starting process B\n");
-    while (1) {
-        putchar('B');
-        switch_context(&proc_b->sp, &proc_a->sp);
-        yield();
-        delay();
-    }
-}
-
 void handle_syscall(struct trap_frame *f) {
     switch (f->a3) {
         case SYS_PUTCHAR:
@@ -367,13 +346,15 @@ void handle_trap(struct trap_frame *f) {
     } else {
         PANIC("unexpected trap scause=%x, stval=%x, sepc=%x\n", scause, stval, user_pc);
     }
+
     WRITE_CSR(sepc, user_pc);
 }
 
 void kernel_main(void) {
+    memset(__bss, 0, (size_t) __bss_end - (size_t) __bss);
+
     printf("\n\nHello World! from kernel\n");
 
-    memset(__bss, 0, (size_t) __bss_end - (size_t) __bss);
     WRITE_CSR(stvec, (uint32_t)kernel_entry);
 
     idle_proc = create_process(NULL, 0);
@@ -382,6 +363,7 @@ void kernel_main(void) {
 
     create_process(_binary_shell_bin_start, (size_t)_binary_shell_bin_size);
     yield();
+
     PANIC("switched to idle process");
 }
 
